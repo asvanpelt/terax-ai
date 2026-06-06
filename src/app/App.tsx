@@ -488,6 +488,15 @@ export default function App() {
     [activeId, splitActivePane],
   );
 
+  const openGitStatusPaneInActiveTab = useCallback(
+    (dir: "row" | "col") => {
+      const t = tabsRef.current.find((x) => x.id === activeId);
+      if (!t || t.kind !== "terminal") return;
+      splitActivePane(activeId, dir, "git-status");
+    },
+    [activeId, splitActivePane],
+  );
+
   const handleCloseTabOrPane = useCallback(() => {
     const t = tabsRef.current.find((x) => x.id === activeId);
     if (t?.kind === "terminal" && leafIds(t.paneTree).length > 1) {
@@ -739,6 +748,8 @@ export default function App() {
             previousTab: () => cycleTab(-1),
             splitPaneRight: () => splitActivePaneInActiveTab("row"),
             splitPaneDown: () => splitActivePaneInActiveTab("col"),
+            gitStatusPaneRight: () => openGitStatusPaneInActiveTab("row"),
+            gitStatusPaneDown: () => openGitStatusPaneInActiveTab("col"),
             focusNextPane: () => focusNextPaneInTab(activeId, 1),
             focusPreviousPane: () => focusNextPaneInTab(activeId, -1),
             focusSearch: () => searchInlineRef.current?.focus(),
@@ -763,6 +774,7 @@ export default function App() {
       handleCloseTabOrPane,
       cycleTab,
       splitActivePaneInActiveTab,
+      openGitStatusPaneInActiveTab,
       focusNextPaneInTab,
       toggleSidebar,
       togglePanelAndFocus,
@@ -877,6 +889,7 @@ export default function App() {
                       onCwd={handleTerminalCwd}
                       onExit={handleLeafExit}
                       onFocusLeaf={handleFocusLeaf}
+                      onOpenFileFromPane={handleOpenFile}
                       registerEditorHandle={registerEditorHandle}
                       onEditorDirtyChange={handleEditorDirty}
                       onEditorCloseTab={disposeTab}

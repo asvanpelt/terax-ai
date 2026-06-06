@@ -1,3 +1,4 @@
+export { GitStatusPane } from "./GitStatusPane";
 export { SourceControlPanel } from "./SourceControlPanelLazy";
 export {
   getSourceControlRemoteIndicator,

@@ -9,6 +9,7 @@ import {
   siblingLeafOf,
   splitLeaf,
   type PaneNode,
+  type PaneView,
   type SplitDir,
 } from "@/modules/terminal/lib/panes";
 import { disposeSession } from "@/modules/terminal/lib/useTerminalSession";
@@ -710,9 +711,12 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     );
   }, []);
 
-  /** Split the active leaf of `tabId` along `dir`. Returns the new leaf id. */
+  /**
+   * Split the active leaf of `tabId` along `dir`. Pass `view` to make the new
+   * pane a non-terminal view (e.g. a live git status). Returns the new leaf id.
+   */
   const splitActivePane = useCallback(
-    (tabId: number, dir: SplitDir): number | null => {
+    (tabId: number, dir: SplitDir, view?: PaneView): number | null => {
       let newLeafId: number | null = null;
       setTabs((curr) =>
         curr.map((t) => {
@@ -728,6 +732,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
             leafId,
             dir,
             t.cwd,
+            view,
           );
           return { ...t, paneTree, activeLeafId: leafId };
         }),

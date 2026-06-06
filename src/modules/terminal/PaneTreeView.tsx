@@ -4,6 +4,7 @@ import {
   ResizablePanel,
   ResizablePanelGroup,
 } from "@/components/ui/resizable";
+import { GitStatusPane } from "@/modules/source-control";
 import type { SearchAddon } from "@xterm/addon-search";
 import { TerminalPane, type TerminalPaneHandle } from "./TerminalPane";
 import { useTerminalDropStore } from "./lib/dropStore";
@@ -23,6 +24,7 @@ type Props = {
   blocks: boolean;
   onFocusLeaf: (leafId: number) => void;
   getBundle: (leafId: number) => LeafBundle;
+  onOpenFile?: (absolutePath: string) => void;
 };
 
 export function PaneTreeView({
@@ -32,10 +34,10 @@ export function PaneTreeView({
   blocks,
   onFocusLeaf,
   getBundle,
+  onOpenFile,
 }: Props) {
   if (node.kind === "leaf") {
     const focused = node.id === activeLeafId;
-    const b = getBundle(node.id);
     return (
       <div
         onMouseDownCapture={() => {
@@ -49,18 +51,30 @@ export function PaneTreeView({
         data-pane-leaf={node.id}
         className="relative h-full w-full"
       >
-        <TerminalPane
-          leafId={node.id}
-          visible={tabVisible}
-          focused={focused}
-          initialCwd={node.cwd}
-          blocks={blocks}
-          ref={b.setRef}
-          onSearchReady={(_id, addon) => b.onSearch(addon)}
-          onCwd={(_id, cwd) => b.onCwd(cwd)}
-          onExit={(_id, code) => b.onExit(code)}
-        />
-        <DropOverlay leafId={node.id} />
+        {node.view === "git-status" ? (
+          // A git-status leaf renders a live status view and spawns no PTY:
+          // TerminalPane (and its useTerminalSession hook) is never mounted.
+          <GitStatusPane
+            cwd={node.cwd}
+            enabled={tabVisible}
+            onOpenFile={onOpenFile}
+          />
+        ) : (
+          <>
+            <TerminalPane
+              leafId={node.id}
+              visible={tabVisible}
+              focused={focused}
+              initialCwd={node.cwd}
+              blocks={blocks}
+              ref={getBundle(node.id).setRef}
+              onSearchReady={(_id, addon) => getBundle(node.id).onSearch(addon)}
+              onCwd={(_id, cwd) => getBundle(node.id).onCwd(cwd)}
+              onExit={(_id, code) => getBundle(node.id).onExit(code)}
+            />
+            <DropOverlay leafId={node.id} />
+          </>
+        )}
       </div>
     );
   }
@@ -80,6 +94,7 @@ export function PaneTreeView({
               blocks={blocks}
               onFocusLeaf={onFocusLeaf}
               getBundle={getBundle}
+              onOpenFile={onOpenFile}
             />
           </ResizablePanel>
         </Fragment>

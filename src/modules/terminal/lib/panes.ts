@@ -2,8 +2,12 @@ export type PaneId = number;
 
 export type SplitDir = "row" | "col";
 
+// A leaf renders a terminal by default. A "git-status" leaf renders a live,
+// read-only git status view instead and never spawns a PTY.
+export type PaneView = "git-status";
+
 export type PaneNode =
-  | { kind: "leaf"; id: PaneId; cwd?: string }
+  | { kind: "leaf"; id: PaneId; cwd?: string; view?: PaneView }
   | {
       kind: "split";
       id: PaneId;
@@ -63,13 +67,19 @@ export function splitLeaf(
   newLeafId: PaneId,
   dir: SplitDir,
   newCwd?: string,
+  newView?: PaneView,
 ): PaneNode {
   if (tree.kind === "split" && tree.dir === dir) {
     const idx = tree.children.findIndex(
       (c) => c.kind === "leaf" && c.id === targetId,
     );
     if (idx >= 0) {
-      const newLeaf: PaneNode = { kind: "leaf", id: newLeafId, cwd: newCwd };
+      const newLeaf: PaneNode = {
+        kind: "leaf",
+        id: newLeafId,
+        cwd: newCwd,
+        ...(newView && { view: newView }),
+      };
       return {
         ...tree,
         children: [
@@ -82,7 +92,12 @@ export function splitLeaf(
   }
   if (isLeaf(tree)) {
     if (tree.id !== targetId) return tree;
-    const newLeaf: PaneNode = { kind: "leaf", id: newLeafId, cwd: newCwd };
+    const newLeaf: PaneNode = {
+      kind: "leaf",
+      id: newLeafId,
+      cwd: newCwd,
+      ...(newView && { view: newView }),
+    };
     return {
       kind: "split",
       id: newSplitId,
@@ -93,7 +108,7 @@ export function splitLeaf(
   return {
     ...tree,
     children: tree.children.map((c) =>
-      splitLeaf(c, targetId, newSplitId, newLeafId, dir, newCwd),
+      splitLeaf(c, targetId, newSplitId, newLeafId, dir, newCwd, newView),
     ),
   };
 }

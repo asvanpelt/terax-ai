@@ -7,6 +7,7 @@ import {
   ArrowRight01Icon,
   Cancel01Icon,
   FileEditIcon,
+  FolderGitTwoIcon,
   Globe02Icon,
   IncognitoIcon,
   KeyboardIcon,
@@ -59,6 +60,8 @@ export type CommandPaletteActionContext = {
   previousTab: () => void;
   splitPaneRight: () => void;
   splitPaneDown: () => void;
+  gitStatusPaneRight: () => void;
+  gitStatusPaneDown: () => void;
   focusNextPane: () => void;
   focusPreviousPane: () => void;
   focusSearch: () => void;
@@ -202,6 +205,24 @@ export function createCommandPaletteActions(
       shortcutId: "pane.splitDown",
       disabledReason: splitPaneDisabledReason,
       run: ctx.splitPaneDown,
+    },
+    {
+      id: "pane.gitStatusRight",
+      label: "Git status pane (right)",
+      group: "Panes",
+      keywords: ["git", "status", "pane", "split", "right", "column", "source"],
+      icon: FolderGitTwoIcon,
+      disabledReason: splitPaneDisabledReason,
+      run: ctx.gitStatusPaneRight,
+    },
+    {
+      id: "pane.gitStatusDown",
+      label: "Git status pane (down)",
+      group: "Panes",
+      keywords: ["git", "status", "pane", "split", "down", "row", "source"],
+      icon: FolderGitTwoIcon,
+      disabledReason: splitPaneDisabledReason,
+      run: ctx.gitStatusPaneDown,
     },
     {
       id: "pane.focusNext",
