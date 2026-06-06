@@ -25,6 +25,7 @@ type Props = {
   onFocusLeaf: (leafId: number) => void;
   getBundle: (leafId: number) => LeafBundle;
   onOpenFile?: (absolutePath: string) => void;
+  onClosePane?: (leafId: number) => void;
 };
 
 export function PaneTreeView({
@@ -35,6 +36,7 @@ export function PaneTreeView({
   onFocusLeaf,
   getBundle,
   onOpenFile,
+  onClosePane,
 }: Props) {
   if (node.kind === "leaf") {
     const focused = node.id === activeLeafId;
@@ -58,6 +60,7 @@ export function PaneTreeView({
             cwd={node.cwd}
             enabled={tabVisible}
             onOpenFile={onOpenFile}
+            onClose={onClosePane ? () => onClosePane(node.id) : undefined}
           />
         ) : (
           <>
@@ -95,6 +98,7 @@ export function PaneTreeView({
               onFocusLeaf={onFocusLeaf}
               getBundle={getBundle}
               onOpenFile={onOpenFile}
+              onClosePane={onClosePane}
             />
           </ResizablePanel>
         </Fragment>

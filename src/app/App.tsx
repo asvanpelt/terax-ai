@@ -892,6 +892,7 @@ export default function App() {
                       onExit={handleLeafExit}
                       onFocusLeaf={handleFocusLeaf}
                       onOpenFileFromPane={handleOpenFile}
+                      onClosePane={closePaneByLeaf}
                       registerEditorHandle={registerEditorHandle}
                       onEditorDirtyChange={handleEditorDirty}
                       onEditorCloseTab={disposeTab}

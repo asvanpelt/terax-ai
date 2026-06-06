@@ -3,6 +3,7 @@ import { cn } from "@/lib/utils";
 import { native, type GitChangedFile } from "@/modules/ai/lib/native";
 import { joinPath } from "@/modules/explorer/lib/useFileTree";
 import {
+  Cancel01Icon,
   CheckmarkCircle01Icon,
   FolderGitTwoIcon,
   PlusSignIcon,
@@ -15,6 +16,7 @@ type Props = {
   cwd: string | undefined;
   enabled?: boolean;
   onOpenFile?: (absolutePath: string) => void;
+  onClose?: () => void;
 };
 
 type StageState = "checked" | "indeterminate" | "unchecked";
@@ -65,6 +67,7 @@ export const GitStatusPane = memo(function GitStatusPane({
   cwd,
   enabled = true,
   onOpenFile,
+  onClose,
 }: Props) {
   const sc = useSourceControl(cwd ?? null, enabled);
   const repoRoot = sc.repo?.repoRoot ?? sc.status?.repoRoot ?? null;
@@ -129,26 +132,36 @@ export const GitStatusPane = memo(function GitStatusPane({
             {files.length}
           </span>
         ) : null}
-        {sc.hasRepo && stageableCount > 0 ? (
-          <button
-            type="button"
-            onClick={stageAll}
-            disabled={!!busy || !repoRoot}
-            title="Stage all changes (git add -A)"
-            className="ml-auto inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
-          >
-            <HugeiconsIcon icon={PlusSignIcon} size={10} strokeWidth={2.2} />
-            Add all
-          </button>
-        ) : null}
-        <span
-          className={cn(
-            "inline-block size-1.5 shrink-0 rounded-full bg-emerald-500/70",
-            stageableCount > 0 ? "ml-1" : "ml-auto",
-          )}
-          title="Live"
-          aria-hidden
-        />
+        <div className="ml-auto flex shrink-0 items-center gap-1.5">
+          {sc.hasRepo && stageableCount > 0 ? (
+            <button
+              type="button"
+              onClick={stageAll}
+              disabled={!!busy || !repoRoot}
+              title="Stage all changes (git add -A)"
+              className="inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+            >
+              <HugeiconsIcon icon={PlusSignIcon} size={10} strokeWidth={2.2} />
+              Add all
+            </button>
+          ) : null}
+          <span
+            className="inline-block size-1.5 rounded-full bg-emerald-500/70"
+            title="Live"
+            aria-hidden
+          />
+          {onClose ? (
+            <button
+              type="button"
+              onClick={onClose}
+              aria-label="Close git status pane"
+              title="Close pane"
+              className="inline-flex size-5 items-center justify-center rounded-md text-muted-foreground transition-colors hover:bg-foreground/10 hover:text-foreground"
+            >
+              <HugeiconsIcon icon={Cancel01Icon} size={13} strokeWidth={1.9} />
+            </button>
+          ) : null}
+        </div>
       </header>
 
       {!sc.hasRepo ? (

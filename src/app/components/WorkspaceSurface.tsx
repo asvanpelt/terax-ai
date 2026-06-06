@@ -23,6 +23,7 @@ type Props = {
   onExit: TerminalStackProps["onExit"];
   onFocusLeaf: TerminalStackProps["onFocusLeaf"];
   onOpenFileFromPane: TerminalStackProps["onOpenFile"];
+  onClosePane: TerminalStackProps["onClosePane"];
   registerEditorHandle: EditorStackProps["registerHandle"];
   onEditorDirtyChange: EditorStackProps["onDirtyChange"];
   onEditorCloseTab: EditorStackProps["onCloseTab"];
@@ -49,6 +50,7 @@ export function WorkspaceSurface({
   onExit,
   onFocusLeaf,
   onOpenFileFromPane,
+  onClosePane,
   registerEditorHandle,
   onEditorDirtyChange,
   onEditorCloseTab,
@@ -86,6 +88,7 @@ export function WorkspaceSurface({
           onExit={onExit}
           onFocusLeaf={onFocusLeaf}
           onOpenFile={onOpenFileFromPane}
+          onClosePane={onClosePane}
         />
       </div>
       <div

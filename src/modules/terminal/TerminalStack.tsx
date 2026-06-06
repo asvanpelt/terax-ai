@@ -16,6 +16,8 @@ type Props = {
   onFocusLeaf: (tabId: number, leafId: number) => void;
   /** Open a file from a git-status pane. */
   onOpenFile?: (absolutePath: string) => void;
+  /** Close a non-terminal pane (e.g. git-status) by leaf id. */
+  onClosePane?: (leafId: number) => void;
 };
 
 type Bundle = {
@@ -34,6 +36,7 @@ export function TerminalStack({
   onExit,
   onFocusLeaf,
   onOpenFile,
+  onClosePane,
 }: Props) {
   const terminals = useMemo(
     () => tabs.filter((t) => t.kind === "terminal"),
@@ -102,6 +105,7 @@ export function TerminalStack({
               onFocusLeaf={(leafId) => onFocusLeaf(t.id, leafId)}
               getBundle={getBundle}
               onOpenFile={onOpenFile}
+              onClosePane={onClosePane}
             />
           </div>
         );
