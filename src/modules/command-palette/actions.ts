@@ -221,6 +221,7 @@ export function createCommandPaletteActions(
       group: "Panes",
       keywords: ["git", "status", "pane", "split", "down", "row", "source"],
       icon: FolderGitTwoIcon,
+      shortcutId: "pane.gitStatus",
       disabledReason: splitPaneDisabledReason,
       run: ctx.gitStatusPaneDown,
     },

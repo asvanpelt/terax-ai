@@ -16,6 +16,7 @@ export type ShortcutId =
   | "tab.selectByIndex"
   | "pane.splitRight"
   | "pane.splitDown"
+  | "pane.gitStatus"
   | "pane.focusNext"
   | "pane.focusPrev"
   | "pane.source"
@@ -122,6 +123,12 @@ export const SHORTCUTS: Shortcut[] = [
     label: "Split pane down",
     group: "Panes",
     defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "d" }],
+  },
+  {
+    id: "pane.gitStatus",
+    label: "Open git status pane",
+    group: "Panes",
+    defaultBindings: [{ [MOD_PROP]: true, shift: true, key: "g" }],
   },
   {
     id: "pane.focusNext",
