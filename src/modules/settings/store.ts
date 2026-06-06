@@ -61,6 +61,7 @@ export type Preferences = {
   customInstructions: string;
   autostart: boolean;
   restoreWindowState: boolean;
+  defaultWorkspaceDir: string;
   autocompleteEnabled: boolean;
   autocompleteProvider: AutocompleteProviderId;
   autocompleteModelId: string;
@@ -105,6 +106,7 @@ const KEY_EDITOR_THEME = "editorTheme";
 const KEY_CUSTOM_INSTRUCTIONS = "customInstructions";
 const KEY_AUTOSTART = "autostart";
 const KEY_RESTORE_WINDOW = "restoreWindowState";
+const KEY_DEFAULT_WORKSPACE_DIR = "defaultWorkspaceDir";
 const KEY_AUTOCOMPLETE_ENABLED = "autocompleteEnabled";
 const KEY_AUTOCOMPLETE_PROVIDER = "autocompleteProvider";
 const KEY_AUTOCOMPLETE_MODEL = "autocompleteModelId";
@@ -164,6 +166,7 @@ export const DEFAULT_PREFERENCES: Preferences = {
   customInstructions: "",
   autostart: false,
   restoreWindowState: true,
+  defaultWorkspaceDir: "",
   autocompleteEnabled: false,
   autocompleteProvider: "cerebras",
   autocompleteModelId: DEFAULT_AUTOCOMPLETE_MODEL.cerebras ?? "",
@@ -245,6 +248,9 @@ export async function loadPreferences(): Promise<Preferences> {
     restoreWindowState:
       get<boolean>(KEY_RESTORE_WINDOW) ??
       DEFAULT_PREFERENCES.restoreWindowState,
+    defaultWorkspaceDir:
+      get<string>(KEY_DEFAULT_WORKSPACE_DIR) ??
+      DEFAULT_PREFERENCES.defaultWorkspaceDir,
     autocompleteEnabled:
       get<boolean>(KEY_AUTOCOMPLETE_ENABLED) ??
       DEFAULT_PREFERENCES.autocompleteEnabled,
@@ -396,6 +402,10 @@ export async function setAutostart(value: boolean): Promise<void> {
 
 export async function setRestoreWindowState(value: boolean): Promise<void> {
   await writePref(KEY_RESTORE_WINDOW, value);
+}
+
+export async function setDefaultWorkspaceDir(value: string): Promise<void> {
+  await writePref(KEY_DEFAULT_WORKSPACE_DIR, value.trim());
 }
 
 export async function setAutocompleteEnabled(value: boolean): Promise<void> {
@@ -571,6 +581,7 @@ export async function onPreferencesChange(
     [KEY_CUSTOM_INSTRUCTIONS]: "customInstructions",
     [KEY_AUTOSTART]: "autostart",
     [KEY_RESTORE_WINDOW]: "restoreWindowState",
+    [KEY_DEFAULT_WORKSPACE_DIR]: "defaultWorkspaceDir",
     [KEY_AUTOCOMPLETE_ENABLED]: "autocompleteEnabled",
     [KEY_AUTOCOMPLETE_PROVIDER]: "autocompleteProvider",
     [KEY_AUTOCOMPLETE_MODEL]: "autocompleteModelId",

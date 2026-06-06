@@ -22,6 +22,7 @@ import {
   TERMINAL_SCROLLBACK_PRESETS,
   setAgentNotifications,
   setAutostart,
+  setDefaultWorkspaceDir,
   setEditorAutoSave,
   setEditorAutoSaveDelay,
   setRestoreWindowState,
@@ -70,6 +71,9 @@ export function GeneralSection() {
 
   const autostart = usePreferencesStore((s) => s.autostart);
   const restoreWindowState = usePreferencesStore((s) => s.restoreWindowState);
+  const defaultWorkspaceDir = usePreferencesStore(
+    (s) => s.defaultWorkspaceDir,
+  );
   const vimMode = usePreferencesStore((s) => s.vimMode);
   const editorAutoSave = usePreferencesStore((s) => s.editorAutoSave);
   const editorAutoSaveDelay = usePreferencesStore((s) => s.editorAutoSaveDelay);
@@ -364,9 +368,52 @@ export function GeneralSection() {
               onCheckedChange={(v) => void setRestoreWindowState(v)}
             />
           </SettingRow>
+          <DefaultWorkspaceDirInput
+            value={defaultWorkspaceDir}
+            onChange={(v) => void setDefaultWorkspaceDir(v)}
+          />
         </div>
       </div>
     </div>
+  );
+}
+
+function DefaultWorkspaceDirInput({
+  value,
+  onChange,
+}: {
+  value: string;
+  onChange: (v: string) => void;
+}) {
+  const [draft, setDraft] = useState(value);
+
+  useEffect(() => {
+    setDraft(value);
+  }, [value]);
+
+  const commit = () => {
+    const next = draft.trim();
+    setDraft(next);
+    if (next !== value) onChange(next);
+  };
+
+  return (
+    <SettingRow
+      title="Default folder"
+      description="Absolute path Terax opens in when launched without a directory. Leave empty to use your home folder. Applies on next launch."
+    >
+      <Input
+        value={draft}
+        placeholder="/Users/you/projects"
+        spellCheck={false}
+        onChange={(e) => setDraft(e.target.value)}
+        onBlur={commit}
+        onKeyDown={(e) => {
+          if (e.key === "Enter") e.currentTarget.blur();
+        }}
+        className="h-8 w-56 rounded-md border border-border bg-background px-2.5 text-[12px] md:text-[12px] outline-none focus:border-foreground/40 focus-visible:ring-0 focus-visible:border-foreground/40"
+      />
+    </SettingRow>
   );
 }
 
