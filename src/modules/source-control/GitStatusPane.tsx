@@ -1,11 +1,14 @@
+import { Checkbox } from "@/components/ui/checkbox";
 import { cn } from "@/lib/utils";
+import { native, type GitChangedFile } from "@/modules/ai/lib/native";
 import { joinPath } from "@/modules/explorer/lib/useFileTree";
 import {
   CheckmarkCircle01Icon,
   FolderGitTwoIcon,
+  PlusSignIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { memo } from "react";
+import { memo, useCallback, useState } from "react";
 import { useSourceControl } from "./useSourceControl";
 
 type Props = {
@@ -14,7 +17,22 @@ type Props = {
   onOpenFile?: (absolutePath: string) => void;
 };
 
-// git porcelain code -> accent color, mirroring SourceControlPanel.
+type StageState = "checked" | "indeterminate" | "unchecked";
+
+// "checked" = fully staged, "indeterminate" = staged with further unstaged
+// edits, "unchecked" = nothing staged. Mirrors SourceControlPanel semantics.
+function stageState(f: GitChangedFile): StageState {
+  if (f.staged && !f.unstaged && !f.untracked) return "checked";
+  if (f.staged) return "indeterminate";
+  return "unchecked";
+}
+
+function checkboxValue(s: StageState): boolean | "indeterminate" {
+  if (s === "checked") return true;
+  if (s === "indeterminate") return "indeterminate";
+  return false;
+}
+
 function statusAccent(code: string): string {
   switch (code) {
     case "A":
@@ -32,20 +50,16 @@ function statusAccent(code: string): string {
   }
 }
 
-function shortCode(file: {
-  indexStatus: string;
-  worktreeStatus: string;
-  untracked: boolean;
-}): string {
-  if (file.untracked) return "?";
-  const code = (file.worktreeStatus || file.indexStatus || "").trim();
+function shortCode(f: GitChangedFile): string {
+  if (f.untracked) return "?";
+  const code = (f.worktreeStatus || f.indexStatus || "").trim();
   return code ? code[0].toUpperCase() : "M";
 }
 
 /**
- * A live, read-only `git status` view sized to live inside a terminal split
- * pane. It reuses useSourceControl (already event-driven via the fs watcher),
- * so it updates on its own and never spawns a PTY.
+ * A live `git status` view sized to live inside a terminal split pane. Reuses
+ * useSourceControl (fs-watcher driven, no PTY), shows the changed files, and
+ * lets you stage per file (checkbox) or stage everything ("Add all").
  */
 export const GitStatusPane = memo(function GitStatusPane({
   cwd,
@@ -55,6 +69,45 @@ export const GitStatusPane = memo(function GitStatusPane({
   const sc = useSourceControl(cwd ?? null, enabled);
   const repoRoot = sc.repo?.repoRoot ?? sc.status?.repoRoot ?? null;
   const files = sc.status?.changedFiles ?? [];
+  const [busy, setBusy] = useState<string | null>(null);
+
+  const run = useCallback(
+    (key: string, op: Promise<void>) => {
+      setBusy(key);
+      op
+        .then(() => sc.refresh())
+        .catch(() => {
+          // The next watcher-driven refresh re-syncs the real state.
+        })
+        .finally(() => setBusy(null));
+    },
+    [sc],
+  );
+
+  const toggleStage = useCallback(
+    (f: GitChangedFile) => {
+      if (busy || !repoRoot) return;
+      if (stageState(f) === "checked") {
+        run(`unstage:${f.path}`, native.gitUnstage(repoRoot, [f.path]));
+      } else {
+        run(`stage:${f.path}`, native.gitStage(repoRoot, [f.path]));
+      }
+    },
+    [busy, repoRoot, run],
+  );
+
+  const stageAll = useCallback(() => {
+    if (busy || !repoRoot) return;
+    const paths = files
+      .filter((f) => stageState(f) !== "checked")
+      .map((f) => f.path);
+    if (paths.length === 0) return;
+    run("all", native.gitStage(repoRoot, paths));
+  }, [busy, repoRoot, files, run]);
+
+  const stageableCount = files.filter(
+    (f) => stageState(f) !== "checked",
+  ).length;
 
   return (
     <div className="flex h-full min-h-0 flex-col rounded-lg border border-border/60 bg-card/80 [contain:layout_style]">
@@ -65,19 +118,34 @@ export const GitStatusPane = memo(function GitStatusPane({
           strokeWidth={1.9}
           className="shrink-0 text-muted-foreground"
         />
-        <span className="max-w-[55%] truncate text-[11.5px] font-medium leading-none">
+        <span className="max-w-[45%] truncate text-[11.5px] font-medium leading-none">
           {sc.hasRepo
             ? (sc.status?.isDetached ? "detached" : sc.status?.branch) ??
               "git status"
             : "git status"}
         </span>
-        {sc.hasRepo ? (
-          <span className="ml-auto inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-border/60 px-1 text-[9.5px] font-semibold tabular-nums text-muted-foreground">
+        {sc.hasRepo && files.length > 0 ? (
+          <span className="inline-flex h-4 min-w-4 items-center justify-center rounded-full border border-border/60 px-1 text-[9.5px] font-semibold tabular-nums text-muted-foreground">
             {files.length}
           </span>
         ) : null}
+        {sc.hasRepo && stageableCount > 0 ? (
+          <button
+            type="button"
+            onClick={stageAll}
+            disabled={!!busy || !repoRoot}
+            title="Stage all changes (git add -A)"
+            className="ml-auto inline-flex items-center gap-1 rounded-md border border-border/60 bg-background px-1.5 py-0.5 text-[10px] font-medium text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground disabled:cursor-not-allowed disabled:opacity-50"
+          >
+            <HugeiconsIcon icon={PlusSignIcon} size={10} strokeWidth={2.2} />
+            Add all
+          </button>
+        ) : null}
         <span
-          className="ml-1 inline-block size-1.5 shrink-0 rounded-full bg-emerald-500/70"
+          className={cn(
+            "inline-block size-1.5 shrink-0 rounded-full bg-emerald-500/70",
+            stageableCount > 0 ? "ml-1" : "ml-auto",
+          )}
           title="Live"
           aria-hidden
         />
@@ -116,20 +184,20 @@ export const GitStatusPane = memo(function GitStatusPane({
               : null;
             const deleted = code === "D";
             const clickable = !!onOpenFile && !!abs && !deleted;
+            const rowBusy =
+              busy === `stage:${f.path}` || busy === `unstage:${f.path}`;
             return (
-              <button
+              <div
                 key={f.path}
-                type="button"
-                disabled={!clickable}
-                onClick={() => clickable && abs && onOpenFile?.(abs)}
-                title={f.statusLabel ? `${f.statusLabel}: ${norm}` : norm}
-                className={cn(
-                  "group flex h-[26px] w-full items-center gap-2 px-2.5 text-left transition-colors",
-                  clickable
-                    ? "cursor-pointer hover:bg-accent/40"
-                    : "cursor-default",
-                )}
+                className="group flex h-[26px] items-center gap-2 px-2.5 transition-colors hover:bg-accent/40"
               >
+                <Checkbox
+                  aria-label={`Stage ${norm}`}
+                  checked={checkboxValue(stageState(f))}
+                  disabled={!!busy || !repoRoot}
+                  onCheckedChange={() => toggleStage(f)}
+                  className={cn("size-3.5 shrink-0", rowBusy && "opacity-50")}
+                />
                 <span
                   className={cn(
                     "inline-flex size-3.5 shrink-0 items-center justify-center rounded-[3px] text-[9px] font-bold text-background",
@@ -139,7 +207,16 @@ export const GitStatusPane = memo(function GitStatusPane({
                 >
                   {code}
                 </span>
-                <span className="min-w-0 flex-1 truncate text-[11.5px] leading-none">
+                <button
+                  type="button"
+                  disabled={!clickable}
+                  onClick={() => clickable && abs && onOpenFile?.(abs)}
+                  title={f.statusLabel ? `${f.statusLabel}: ${norm}` : norm}
+                  className={cn(
+                    "min-w-0 flex-1 truncate text-left text-[11.5px] leading-none",
+                    clickable ? "cursor-pointer" : "cursor-default",
+                  )}
+                >
                   <span
                     className={cn(
                       "font-medium",
@@ -153,8 +230,8 @@ export const GitStatusPane = memo(function GitStatusPane({
                       {dir}
                     </span>
                   ) : null}
-                </span>
-              </button>
+                </button>
+              </div>
             );
           })}
         </div>
