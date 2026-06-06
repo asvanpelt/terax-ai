@@ -89,6 +89,15 @@ fn is_skipped(path: &Path) -> bool {
         .is_some_and(|n| SKIP_DIRS.contains(&n))
 }
 
+// The .git metadir is in SKIP_DIRS (its object store churns under recursive
+// watches), but the source-control panel watches it non-recursively to react
+// to commits, staging, and branch switches the instant they happen. Watching
+// it directly only surfaces its top-level entries (index, HEAD, ...), not the
+// object store, so the cost stays negligible.
+fn is_git_metadir(path: &Path) -> bool {
+    path.file_name().and_then(|n| n.to_str()) == Some(".git")
+}
+
 #[derive(Default)]
 pub struct FsWatchState {
     inner: Mutex<Option<WatchInner>>,
@@ -218,7 +227,8 @@ fn prepare_add(
         .filter_map(|raw| {
             let resolved = resolve_path(&raw, workspace);
             let canonical = std::fs::canonicalize(&resolved).ok()?;
-            if !canonical.is_dir() || is_skipped(&canonical) || !registry.is_authorized(&canonical) {
+            let skipped = is_skipped(&canonical) && !is_git_metadir(&canonical);
+            if !canonical.is_dir() || skipped || !registry.is_authorized(&canonical) {
                 return None;
             }
             Some(canonical)
@@ -281,6 +291,16 @@ mod tests {
         assert!(is_skipped(Path::new("/p/obj")));
         assert!(!is_skipped(Path::new("/a/src")));
         assert!(!is_skipped(Path::new("/a/node_modules/pkg")));
+    }
+
+    #[test]
+    fn git_metadir_escapes_the_skip_filter() {
+        // .git is skipped for recursive expansion but watchable on its own so
+        // the source-control panel reacts to commits and staging.
+        assert!(is_skipped(Path::new("/repo/.git")));
+        assert!(is_git_metadir(Path::new("/repo/.git")));
+        assert!(!is_git_metadir(Path::new("/repo/src")));
+        assert!(!is_git_metadir(Path::new("/repo/.github")));
     }
 
     #[test]

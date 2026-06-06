@@ -3,12 +3,21 @@ import {
   type GitRepoInfo,
   type GitStatusSnapshot,
 } from "@/modules/ai/lib/native";
+import {
+  listenFsChanged,
+  watchAdd,
+  watchRemove,
+} from "@/modules/explorer/lib/watch";
 import { useWorkspaceEnvStore, workspaceScopeKey } from "@/modules/workspace";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { createDebounced } from "./lib/debounce";
 
 const AUTO_FETCH_THROTTLE_MS = 5 * 60_000;
 const AUTO_FETCH_LRU_LIMIT = 16;
 const FOCUS_REFRESH_MIN_INTERVAL_MS = 1500;
+// Trailing-edge gap before a filesystem-change burst triggers a git status.
+// The Rust watcher already debounces ~150ms; this coalesces the follow-up.
+const LIVE_REFRESH_DEBOUNCE_MS = 300;
 
 export type SourceControlRefreshMode = "auto" | "always" | "never";
 export type SourceControlRemoteAction = "fetch" | "pull" | "push";
@@ -444,6 +453,47 @@ export function useSourceControl(
       }
     };
   }, [refresh, contextPath, enabled, workspaceKey]);
+
+  // Watch the repo's .git metadir (non-recursive) so commits, staging, and
+  // branch switches made from the terminal surface live. The working tree is
+  // already covered by the explorer's watches; .git is not (it's skipped from
+  // recursive expansion), so it must be requested explicitly.
+  useEffect(() => {
+    const repoRoot = state.repo?.repoRoot;
+    if (!enabled || !repoRoot) return;
+    const gitDir = `${repoRoot}/.git`;
+    watchAdd([gitDir]);
+    return () => watchRemove([gitDir]);
+  }, [enabled, state.repo?.repoRoot]);
+
+  // Live refresh: react to filesystem changes via the existing watcher
+  // (event-driven, no polling). Debounced, and skipped when the changed paths
+  // fall outside the active repo so unrelated edits never spend a git status.
+  useEffect(() => {
+    if (!enabled) return;
+    const debounced = createDebounced(() => {
+      void refresh({ remote: "never" });
+    }, LIVE_REFRESH_DEBOUNCE_MS);
+    let unlisten: (() => void) | null = null;
+    let cancelled = false;
+    listenFsChanged((paths) => {
+      const root = stateRef.current.repo?.repoRoot;
+      if (root && !paths.some((p) => p === root || p.startsWith(`${root}/`))) {
+        return;
+      }
+      debounced.schedule();
+    })
+      .then((un) => {
+        if (cancelled) un();
+        else unlisten = un;
+      })
+      .catch(() => {});
+    return () => {
+      cancelled = true;
+      debounced.cancel();
+      if (unlisten) unlisten();
+    };
+  }, [enabled, refresh]);
 
   useEffect(() => {
     if (!enabled) return;
