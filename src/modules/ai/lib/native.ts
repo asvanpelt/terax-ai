@@ -71,6 +71,13 @@ export type GitDiffResult = {
   truncated: boolean;
 };
 
+export type GitNumstatEntry = {
+  path: string;
+  added: number;
+  removed: number;
+  isBinary: boolean;
+};
+
 export type GitDiffContentResult = {
   originalContent: string;
   modifiedContent: string;
@@ -265,6 +272,11 @@ export const native = {
       repoRoot,
       path,
       staged,
+      workspace: currentWorkspaceEnv(),
+    }),
+  gitDiffNumstat: (repoRoot: string) =>
+    invoke<GitNumstatEntry[]>("git_diff_numstat", {
+      repoRoot,
       workspace: currentWorkspaceEnv(),
     }),
   gitDiffContent: (

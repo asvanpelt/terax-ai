@@ -92,6 +92,15 @@ pub struct GitCommitFileChange {
     pub is_binary: bool,
 }
 
+#[derive(Serialize, Debug, PartialEq)]
+#[serde(rename_all = "camelCase")]
+pub struct GitNumstatEntry {
+    pub path: String,
+    pub added: u32,
+    pub removed: u32,
+    pub is_binary: bool,
+}
+
 #[derive(Serialize)]
 #[serde(rename_all = "camelCase")]
 pub struct GitLogEntry {

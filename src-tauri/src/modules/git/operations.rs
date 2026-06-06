@@ -9,7 +9,8 @@ use crate::modules::git::process::{
 };
 use crate::modules::git::types::{
     DiscardEntry, GitCommitFileChange, GitCommitResult, GitDiffContentResult, GitDiffResult,
-    GitLogEntry, GitOutput, GitPanelSnapshot, GitPushResult, GitRepoInfo, GitStatusSnapshot,
+    GitLogEntry, GitNumstatEntry, GitOutput, GitPanelSnapshot, GitPushResult, GitRepoInfo,
+    GitStatusSnapshot,
     TextSource, DEFAULT_TIMEOUT_SECS, NETWORK_TIMEOUT_SECS,
 };
 use crate::modules::git::utils::{
@@ -201,6 +202,65 @@ fn diff_inner(
         diff_text,
         truncated: output.truncated,
     })
+}
+
+/// Per-file added/removed line counts for the working tree vs HEAD (covers both
+/// staged and unstaged changes). Used by the status pane's change bars. Falls
+/// back to a HEAD-less diff for repos with no commits yet.
+pub fn diff_numstat(
+    registry: &WorkspaceRegistry,
+    repo_root: &str,
+    workspace: &WorkspaceEnv,
+) -> Result<Vec<GitNumstatEntry>> {
+    let repo_root = authorized_repo_root(registry, repo_root, workspace)?;
+    ensure_git_available(&repo_root.workspace)?;
+
+    let base: [OsString; 3] = [
+        "diff".into(),
+        "--no-ext-diff".into(),
+        "--numstat".into(),
+    ];
+    let mut with_head: Vec<OsString> = base.to_vec();
+    with_head.push("HEAD".into());
+    let output = run_git(
+        &repo_root.workspace,
+        Some(&repo_root.git_path),
+        with_head,
+        DEFAULT_TIMEOUT_SECS,
+    )?;
+    let output = if output.exit_code == Some(0) {
+        output
+    } else {
+        run_git(
+            &repo_root.workspace,
+            Some(&repo_root.git_path),
+            base.to_vec(),
+            DEFAULT_TIMEOUT_SECS,
+        )?
+    };
+    ensure_success(&output, "git diff --numstat failed")?;
+    Ok(parse_numstat(&String::from_utf8_lossy(&output.stdout)))
+}
+
+fn parse_numstat(text: &str) -> Vec<GitNumstatEntry> {
+    text.lines()
+        .filter_map(|line| {
+            let mut parts = line.splitn(3, '\t');
+            let added = parts.next()?;
+            let removed = parts.next()?;
+            let path = parts.next()?;
+            if path.is_empty() {
+                return None;
+            }
+            let is_binary = added == "-" || removed == "-";
+            Some(GitNumstatEntry {
+                path: path.to_string(),
+                added: added.parse().unwrap_or(0),
+                removed: removed.parse().unwrap_or(0),
+                is_binary,
+            })
+        })
+        .collect()
 }
 
 pub fn diff_content(
@@ -979,6 +1039,39 @@ fn pathspec(repo_root: &Path, absolute: &Path) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn parse_numstat_reads_counts_and_binary() {
+        let out = parse_numstat("12\t3\tsrc/app.ts\n0\t5\tREADME.md\n-\t-\tlogo.png\n");
+        assert_eq!(
+            out,
+            vec![
+                GitNumstatEntry {
+                    path: "src/app.ts".into(),
+                    added: 12,
+                    removed: 3,
+                    is_binary: false,
+                },
+                GitNumstatEntry {
+                    path: "README.md".into(),
+                    added: 0,
+                    removed: 5,
+                    is_binary: false,
+                },
+                GitNumstatEntry {
+                    path: "logo.png".into(),
+                    added: 0,
+                    removed: 0,
+                    is_binary: true,
+                },
+            ]
+        );
+    }
+
+    #[test]
+    fn parse_numstat_skips_malformed_lines() {
+        assert!(parse_numstat("garbage\n\n5\t5\n").is_empty());
+    }
 
     #[test]
     fn sha_is_safe_accepts_hex() {
