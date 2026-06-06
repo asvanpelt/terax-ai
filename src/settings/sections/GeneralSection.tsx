@@ -39,11 +39,13 @@ import {
 import { useTheme } from "@/modules/theme";
 import {
   ComputerIcon,
+  FolderOpenIcon,
   Moon02Icon,
   Sun03Icon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
 import { disable, enable, isEnabled } from "@tauri-apps/plugin-autostart";
+import { open } from "@tauri-apps/plugin-dialog";
 import { useEffect, useState } from "react";
 import { SectionHeader } from "../components/SectionHeader";
 import { SettingRow } from "../components/SettingRow";
@@ -391,28 +393,48 @@ function DefaultWorkspaceDirInput({
     setDraft(value);
   }, [value]);
 
-  const commit = () => {
-    const next = draft.trim();
-    setDraft(next);
-    if (next !== value) onChange(next);
+  const commit = (next: string) => {
+    const trimmed = next.trim();
+    setDraft(trimmed);
+    if (trimmed !== value) onChange(trimmed);
+  };
+
+  const browse = async () => {
+    const picked = await open({
+      directory: true,
+      multiple: false,
+      title: "Choose default folder",
+      defaultPath: draft.trim() || undefined,
+    }).catch(() => null);
+    if (typeof picked === "string") commit(picked);
   };
 
   return (
     <SettingRow
       title="Default folder"
-      description="Absolute path Terax opens in when launched without a directory. Leave empty to use your home folder. Applies on next launch."
+      description="Folder Terax opens in when launched without a directory. Leave empty to use your home folder. Applies on next launch."
     >
-      <Input
-        value={draft}
-        placeholder="/Users/you/projects"
-        spellCheck={false}
-        onChange={(e) => setDraft(e.target.value)}
-        onBlur={commit}
-        onKeyDown={(e) => {
-          if (e.key === "Enter") e.currentTarget.blur();
-        }}
-        className="h-8 w-56 rounded-md border border-border bg-background px-2.5 text-[12px] md:text-[12px] outline-none focus:border-foreground/40 focus-visible:ring-0 focus-visible:border-foreground/40"
-      />
+      <div className="flex items-center gap-1.5">
+        <Input
+          value={draft}
+          placeholder="/Users/you/projects"
+          spellCheck={false}
+          onChange={(e) => setDraft(e.target.value)}
+          onBlur={() => commit(draft)}
+          onKeyDown={(e) => {
+            if (e.key === "Enter") e.currentTarget.blur();
+          }}
+          className="h-8 w-48 rounded-md border border-border bg-background px-2.5 text-[12px] md:text-[12px] outline-none focus:border-foreground/40 focus-visible:ring-0 focus-visible:border-foreground/40"
+        />
+        <button
+          type="button"
+          onClick={() => void browse()}
+          aria-label="Browse for folder"
+          className="flex h-8 w-8 shrink-0 items-center justify-center rounded-md border border-border bg-background text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
+        >
+          <HugeiconsIcon icon={FolderOpenIcon} size={16} strokeWidth={1.5} />
+        </button>
+      </div>
     </SettingRow>
   );
 }
