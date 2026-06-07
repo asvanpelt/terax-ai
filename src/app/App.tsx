@@ -31,6 +31,7 @@ import {
   useEditorFileSync,
   type EditorPaneHandle,
 } from "@/modules/editor";
+import { BookmarksPanel, useBookmarks } from "@/modules/bookmarks";
 import { FileExplorer, type FileExplorerHandle } from "@/modules/explorer";
 import type { GitHistorySearchHandle } from "@/modules/git-history";
 import {
@@ -178,6 +179,8 @@ export default function App() {
     persistSidebarWidth,
     toggleExplorerFocus,
   } = useSidebarPanel(explorerRef);
+
+  const { bookmarks, addBookmark, removeBookmark } = useBookmarks();
 
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [newEditorOpen, setNewEditorOpen] = useState(false);
@@ -849,7 +852,14 @@ export default function App() {
               >
                 <div className="flex h-full min-h-0 flex-col border-r border-border/60 bg-card">
                   <div className="min-h-0 flex-1">
-                    {sidebarView === "explorer" ? (
+                    {sidebarView === "bookmarks" ? (
+                      <BookmarksPanel
+                        bookmarks={bookmarks}
+                        onOpenFolder={cdInNewTab}
+                        onAddBookmark={addBookmark}
+                        onRemoveBookmark={removeBookmark}
+                      />
+                    ) : sidebarView === "explorer" ? (
                       <FileExplorer
                         ref={explorerRef}
                         rootPath={explorerRoot}
@@ -860,6 +870,7 @@ export default function App() {
                         onRevealInTerminal={cdInNewTab}
                         onAttachToAgent={handleAttachFileToAgent}
                         onOpenMarkdownPreview={openMarkdownPreview}
+                        onAddBookmark={addBookmark}
                       />
                     ) : (
                       <SourceControlPanel

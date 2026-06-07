@@ -36,6 +36,7 @@ export type EntryRowProps = {
   onRevealInTerminal?: (path: string) => void;
   onAttachToAgent?: (path: string) => void;
   onOpenMarkdownPreview?: (path: string) => void;
+  onAddBookmark?: (path: string) => void;
 };
 
 function isMarkdownPath(path: string): boolean {
@@ -58,6 +59,7 @@ function EntryRowImpl(props: EntryRowProps) {
     onRevealInTerminal,
     onAttachToAgent,
     onOpenMarkdownPreview,
+    onAddBookmark,
   } = props;
 
   const [isConfirming, setIsConfirming] = useState(false);
@@ -154,6 +156,14 @@ function EntryRowImpl(props: EntryRowProps) {
             onSelect={() => onRevealInTerminal(path)}
           >
             Open in Terminal
+          </ContextMenuItem>
+        )}
+        {isDir && onAddBookmark && (
+          <ContextMenuItem
+            className={COMPACT_ITEM}
+            onSelect={() => onAddBookmark(path)}
+          >
+            Add to Bookmarks
           </ContextMenuItem>
         )}
         <ContextMenuItem
