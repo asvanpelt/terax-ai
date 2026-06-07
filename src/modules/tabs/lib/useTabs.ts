@@ -182,18 +182,21 @@ export function useTabs(initial?: Partial<TerminalTab>) {
 
   /**
    * Open a new terminal tab pre-arranged as the git workspace layout:
-   * terminal | (git-status over terminal). Both terminals spawn in `cwd`.
+   * terminal | (git-status over terminal). When `withGit` is false the
+   * top-right pane is a plain terminal instead of the git view. Both terminals
+   * spawn in `cwd`.
    */
-  const newTabWithGitLayout = useCallback((cwd?: string) => {
+  const newTabWithGitLayout = useCallback((cwd?: string, withGit = true) => {
     const tabId = nextIdRef.current++;
     const rootSplit = nextIdRef.current++;
     const leftTerm = nextIdRef.current++;
     const rightSplit = nextIdRef.current++;
-    const gitLeaf = nextIdRef.current++;
+    const topLeaf = nextIdRef.current++;
     const bottomTerm = nextIdRef.current++;
     const paneTree = gitWorkspaceLayout(
-      { rootSplit, leftTerm, rightSplit, gitLeaf, bottomTerm },
+      { rootSplit, leftTerm, rightSplit, topLeaf, bottomTerm },
       cwd,
+      withGit,
     );
     setTabs((t) => [
       ...t,

@@ -46,7 +46,7 @@ describe("gitWorkspaceLayout", () => {
     rootSplit: 10,
     leftTerm: 11,
     rightSplit: 12,
-    gitLeaf: 13,
+    topLeaf: 13,
     bottomTerm: 14,
   };
 
@@ -65,6 +65,18 @@ describe("gitWorkspaceLayout", () => {
     const [top, bottom] = right.children;
     expect(isLeaf(top) && top.view).toBe("git-status");
     expect(isLeaf(bottom) && bottom.view).toBeUndefined();
+  });
+
+  it("falls back to a plain terminal in the top-right pane when withGit is false", () => {
+    const tree = gitWorkspaceLayout(ids, "/repo", false);
+    if (tree.kind !== "split") throw new Error("expected split");
+    const right = tree.children[1];
+    if (right.kind !== "split") throw new Error("expected nested split");
+    const [top, bottom] = right.children;
+    // No git view anywhere: both right-column leaves render a PTY.
+    expect(isLeaf(top) && top.view).toBeUndefined();
+    expect(isLeaf(bottom) && bottom.view).toBeUndefined();
+    expect(leafIds(tree)).toEqual([11, 13, 14]);
   });
 
   it("seeds every leaf with the given cwd and yields three unique leaves", () => {

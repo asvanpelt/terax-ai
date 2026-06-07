@@ -397,8 +397,12 @@ export default function App() {
   const openBookmarkLayout = useCallback(
     (path: string) => {
       // Each leaf is seeded with the folder cwd, so both PTYs spawn there and
-      // the git pane reads the same root. No explicit cd needed.
-      newTabWithGitLayout(path);
+      // the git pane reads the same root. No explicit cd needed. The top-right
+      // pane falls back to a terminal when the folder is not a git repo.
+      void native
+        .gitResolveRepo(path)
+        .then((repo) => newTabWithGitLayout(path, repo !== null))
+        .catch(() => newTabWithGitLayout(path, false));
     },
     [newTabWithGitLayout],
   );

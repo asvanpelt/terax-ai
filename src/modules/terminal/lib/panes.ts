@@ -55,20 +55,23 @@ export function setLeafCwd(
 
 /**
  * Build the "git workspace" preset: two columns where the left column is a
- * terminal and the right column stacks a live git-status view on top of a
- * second terminal. All leaves are seeded with `cwd` so each PTY spawns in the
- * folder and the git pane reads the same root. Caller supplies pre-allocated
- * ids to keep the tree pure and id generation in one place.
+ * terminal and the right column stacks a top pane over a second terminal. The
+ * top-right pane is a live git-status view when `withGit` is true, otherwise it
+ * falls back to a plain terminal (e.g. when the folder is not a git repo). All
+ * leaves are seeded with `cwd` so each PTY spawns in the folder and the git
+ * pane reads the same root. Caller supplies pre-allocated ids to keep the tree
+ * pure and id generation in one place.
  */
 export function gitWorkspaceLayout(
   ids: {
     rootSplit: PaneId;
     leftTerm: PaneId;
     rightSplit: PaneId;
-    gitLeaf: PaneId;
+    topLeaf: PaneId;
     bottomTerm: PaneId;
   },
   cwd?: string,
+  withGit = true,
 ): PaneNode {
   return {
     kind: "split",
@@ -81,7 +84,12 @@ export function gitWorkspaceLayout(
         id: ids.rightSplit,
         dir: "col",
         children: [
-          { kind: "leaf", id: ids.gitLeaf, cwd, view: "git-status" },
+          {
+            kind: "leaf",
+            id: ids.topLeaf,
+            cwd,
+            ...(withGit && { view: "git-status" as const }),
+          },
           { kind: "leaf", id: ids.bottomTerm, cwd },
         ],
       },
