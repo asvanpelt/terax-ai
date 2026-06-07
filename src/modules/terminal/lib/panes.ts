@@ -54,6 +54,42 @@ export function setLeafCwd(
 }
 
 /**
+ * Build the "git workspace" preset: two columns where the left column is a
+ * terminal and the right column stacks a live git-status view on top of a
+ * second terminal. All leaves are seeded with `cwd` so each PTY spawns in the
+ * folder and the git pane reads the same root. Caller supplies pre-allocated
+ * ids to keep the tree pure and id generation in one place.
+ */
+export function gitWorkspaceLayout(
+  ids: {
+    rootSplit: PaneId;
+    leftTerm: PaneId;
+    rightSplit: PaneId;
+    gitLeaf: PaneId;
+    bottomTerm: PaneId;
+  },
+  cwd?: string,
+): PaneNode {
+  return {
+    kind: "split",
+    id: ids.rootSplit,
+    dir: "row",
+    children: [
+      { kind: "leaf", id: ids.leftTerm, cwd },
+      {
+        kind: "split",
+        id: ids.rightSplit,
+        dir: "col",
+        children: [
+          { kind: "leaf", id: ids.gitLeaf, cwd, view: "git-status" },
+          { kind: "leaf", id: ids.bottomTerm, cwd },
+        ],
+      },
+    ],
+  };
+}
+
+/**
  * Insert a new leaf next to `targetId` in direction `dir`.
  *
  * If the target's enclosing split already runs in `dir`, the new leaf is

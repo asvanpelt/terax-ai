@@ -23,6 +23,7 @@ const COMPACT_CONTENT = "min-w-44 rounded-2xl p-1";
 type Props = {
   bookmarks: string[];
   onOpenFolder: (path: string) => void;
+  onOpenInTerminal: (path: string) => void;
   onAddBookmark: (path: string) => void;
   onRemoveBookmark: (path: string) => void;
 };
@@ -30,6 +31,7 @@ type Props = {
 export function BookmarksPanel({
   bookmarks,
   onOpenFolder,
+  onOpenInTerminal,
   onAddBookmark,
   onRemoveBookmark,
 }: Props) {
@@ -106,6 +108,12 @@ export function BookmarksPanel({
                 <ContextMenuItem
                   className={COMPACT_ITEM}
                   onSelect={() => onOpenFolder(path)}
+                >
+                  Open Git Layout
+                </ContextMenuItem>
+                <ContextMenuItem
+                  className={COMPACT_ITEM}
+                  onSelect={() => onOpenInTerminal(path)}
                 >
                   Open in Terminal
                 </ContextMenuItem>

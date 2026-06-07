@@ -94,6 +94,7 @@ export default function App() {
     activeId,
     setActiveId,
     newTab,
+    newTabWithGitLayout,
     newBlockTab,
     newAgentTab,
     newPrivateTab,
@@ -391,6 +392,15 @@ export default function App() {
       }, 80);
     },
     [newTab],
+  );
+
+  const openBookmarkLayout = useCallback(
+    (path: string) => {
+      // Each leaf is seeded with the folder cwd, so both PTYs spawn there and
+      // the git pane reads the same root. No explicit cd needed.
+      newTabWithGitLayout(path);
+    },
+    [newTabWithGitLayout],
   );
 
   const handleOpenFile = useCallback(
@@ -855,7 +865,8 @@ export default function App() {
                     {sidebarView === "bookmarks" ? (
                       <BookmarksPanel
                         bookmarks={bookmarks}
-                        onOpenFolder={cdInNewTab}
+                        onOpenFolder={openBookmarkLayout}
+                        onOpenInTerminal={cdInNewTab}
                         onAddBookmark={addBookmark}
                         onRemoveBookmark={removeBookmark}
                       />

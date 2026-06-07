@@ -1,6 +1,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import {
   findLeafCwd,
+  gitWorkspaceLayout,
   hasLeaf,
   leafIds,
   nextLeafId,
@@ -173,6 +174,36 @@ export function useTabs(initial?: Partial<TerminalTab>) {
         cwd,
         paneTree: { kind: "leaf", id: leafId, cwd },
         activeLeafId: leafId,
+      },
+    ]);
+    setActiveId(tabId);
+    return tabId;
+  }, []);
+
+  /**
+   * Open a new terminal tab pre-arranged as the git workspace layout:
+   * terminal | (git-status over terminal). Both terminals spawn in `cwd`.
+   */
+  const newTabWithGitLayout = useCallback((cwd?: string) => {
+    const tabId = nextIdRef.current++;
+    const rootSplit = nextIdRef.current++;
+    const leftTerm = nextIdRef.current++;
+    const rightSplit = nextIdRef.current++;
+    const gitLeaf = nextIdRef.current++;
+    const bottomTerm = nextIdRef.current++;
+    const paneTree = gitWorkspaceLayout(
+      { rootSplit, leftTerm, rightSplit, gitLeaf, bottomTerm },
+      cwd,
+    );
+    setTabs((t) => [
+      ...t,
+      {
+        id: tabId,
+        kind: "terminal",
+        title: "shell",
+        cwd,
+        paneTree,
+        activeLeafId: leftTerm,
       },
     ]);
     setActiveId(tabId);
@@ -838,6 +869,7 @@ export function useTabs(initial?: Partial<TerminalTab>) {
     activeId,
     setActiveId,
     newTab,
+    newTabWithGitLayout,
     newBlockTab,
     newAgentTab,
     newPrivateTab,
