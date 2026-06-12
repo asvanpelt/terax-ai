@@ -238,6 +238,20 @@ html[data-chrome="borderless"] #settings-root {
   display: none !important;
 }
 
+.git-diff-split .cm-mergeView {
+  height: 100%;
+  overflow: auto;
+}
+.git-diff-split .cm-mergeViewEditors {
+  min-height: 100%;
+}
+.git-diff-split .cm-mergeViewEditor + .cm-mergeViewEditor {
+  border-left: 1px solid var(--border);
+}
+.git-diff-split .cm-mergeViewEditor .cm-editor {
+  min-height: 100%;
+}
+
 body {
   -webkit-user-select: none;
   user-select: none;

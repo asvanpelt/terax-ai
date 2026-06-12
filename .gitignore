@@ -13,6 +13,10 @@ dist-ssr
 *.local
 stats.html
 
+# Local agent/install artifacts (Codex env shims, project-local pnpm store)
+.codex-install-bin
+.pnpm-store
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json
