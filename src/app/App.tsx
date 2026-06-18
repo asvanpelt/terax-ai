@@ -31,6 +31,7 @@ import {
   useEditorFileSync,
   type EditorPaneHandle,
 } from "@/modules/editor";
+import { BookmarksPanel, useBookmarks } from "@/modules/bookmarks";
 import { FileExplorer, type FileExplorerHandle } from "@/modules/explorer";
 import type { GitHistorySearchHandle } from "@/modules/git-history";
 import {
@@ -93,6 +94,7 @@ export default function App() {
     activeId,
     setActiveId,
     newTab,
+    newTabWithGitLayout,
     newBlockTab,
     newAgentTab,
     newPrivateTab,
@@ -178,6 +180,8 @@ export default function App() {
     persistSidebarWidth,
     toggleExplorerFocus,
   } = useSidebarPanel(explorerRef);
+
+  const { bookmarks, addBookmark, removeBookmark } = useBookmarks();
 
   const [shortcutsOpen, setShortcutsOpen] = useState(false);
   const [newEditorOpen, setNewEditorOpen] = useState(false);
@@ -388,6 +392,19 @@ export default function App() {
       }, 80);
     },
     [newTab],
+  );
+
+  const openBookmarkLayout = useCallback(
+    (path: string) => {
+      // Each leaf is seeded with the folder cwd, so both PTYs spawn there and
+      // the git pane reads the same root. No explicit cd needed. The top-right
+      // pane falls back to a terminal when the folder is not a git repo.
+      void native
+        .gitResolveRepo(path)
+        .then((repo) => newTabWithGitLayout(path, repo !== null))
+        .catch(() => newTabWithGitLayout(path, false));
+    },
+    [newTabWithGitLayout],
   );
 
   const handleOpenFile = useCallback(
@@ -849,7 +866,15 @@ export default function App() {
               >
                 <div className="flex h-full min-h-0 flex-col border-r border-border/60 bg-card">
                   <div className="min-h-0 flex-1">
-                    {sidebarView === "explorer" ? (
+                    {sidebarView === "bookmarks" ? (
+                      <BookmarksPanel
+                        bookmarks={bookmarks}
+                        onOpenFolder={openBookmarkLayout}
+                        onOpenInTerminal={cdInNewTab}
+                        onAddBookmark={addBookmark}
+                        onRemoveBookmark={removeBookmark}
+                      />
+                    ) : sidebarView === "explorer" ? (
                       <FileExplorer
                         ref={explorerRef}
                         rootPath={explorerRoot}
@@ -860,6 +885,7 @@ export default function App() {
                         onRevealInTerminal={cdInNewTab}
                         onAttachToAgent={handleAttachFileToAgent}
                         onOpenMarkdownPreview={openMarkdownPreview}
+                        onAddBookmark={addBookmark}
                       />
                     ) : (
                       <SourceControlPanel

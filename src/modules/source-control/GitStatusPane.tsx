@@ -1,15 +1,4 @@
 import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "@/components/ui/dialog";
-import { Checkbox } from "@/components/ui/checkbox";
-import { Spinner } from "@/components/ui/spinner";
-import { cn } from "@/lib/utils";
-import { native, type GitChangedFile } from "@/modules/ai/lib/native";
-import { joinPath } from "@/modules/explorer/lib/useFileTree";
-import {
   Cancel01Icon,
   CheckmarkCircle01Icon,
   FileEditIcon,
@@ -17,7 +6,19 @@ import {
   PlusSignIcon,
 } from "@hugeicons/core-free-icons";
 import { HugeiconsIcon } from "@hugeicons/react";
-import { Suspense, lazy, memo, useCallback, useEffect, useState } from "react";
+import { lazy, memo, Suspense, useCallback, useEffect, useState } from "react";
+import { Checkbox } from "@/components/ui/checkbox";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog";
+import { Spinner } from "@/components/ui/spinner";
+import { cn } from "@/lib/utils";
+import { type GitChangedFile, native } from "@/modules/ai/lib/native";
+import { joinPath } from "@/modules/explorer/lib/useFileTree";
+import { workingDiffMode } from "./lib/gitDiffMode";
 import { useSourceControl } from "./useSourceControl";
 
 // CodeMirror-heavy; load only when a diff is actually opened so it never
@@ -125,8 +126,7 @@ export const GitStatusPane = memo(function GitStatusPane({
   const run = useCallback(
     (key: string, op: Promise<void>) => {
       setBusy(key);
-      op
-        .then(() => sc.refresh())
+      op.then(() => sc.refresh())
         .catch(() => {
           // The next watcher-driven refresh re-syncs the real state.
         })
@@ -162,7 +162,10 @@ export const GitStatusPane = memo(function GitStatusPane({
 
   const diffAbs =
     diffFile && repoRoot
-      ? joinPath(repoRoot.replace(/\\/g, "/"), diffFile.path.replace(/\\/g, "/"))
+      ? joinPath(
+          repoRoot.replace(/\\/g, "/"),
+          diffFile.path.replace(/\\/g, "/"),
+        )
       : null;
 
   return (
@@ -176,8 +179,8 @@ export const GitStatusPane = memo(function GitStatusPane({
         />
         <span className="max-w-[40%] truncate text-[11.5px] font-medium leading-none">
           {sc.hasRepo
-            ? (sc.status?.isDetached ? "detached" : sc.status?.branch) ??
-              "git status"
+            ? ((sc.status?.isDetached ? "detached" : sc.status?.branch) ??
+              "git status")
             : "git status"}
         </span>
         {sc.hasRepo && files.length > 0 ? (
@@ -270,14 +273,11 @@ export const GitStatusPane = memo(function GitStatusPane({
                 </span>
                 <button
                   type="button"
-                  disabled={deleted}
-                  onClick={() => !deleted && setDiffFile(f)}
-                  title={
-                    deleted ? norm : `${f.statusLabel || "View diff"}: ${norm}`
-                  }
+                  onClick={() => setDiffFile(f)}
+                  title={`${f.statusLabel || "View diff"}: ${norm}`}
                   className={cn(
                     "min-w-0 flex-1 truncate text-left text-[11.5px] leading-none",
-                    deleted ? "cursor-default" : "cursor-pointer",
+                    "cursor-pointer",
                   )}
                 >
                   <span
@@ -307,13 +307,16 @@ export const GitStatusPane = memo(function GitStatusPane({
           if (!o) setDiffFile(null);
         }}
       >
-        <DialogContent className="flex h-[85vh] w-[90vw] max-w-[1100px] flex-col gap-0 overflow-hidden p-0">
+        <DialogContent className="flex h-[88vh] w-[90vw] max-w-[90vw] sm:max-w-[90vw] flex-col gap-0 overflow-hidden p-0">
           <DialogHeader className="shrink-0 flex-row items-center gap-3 border-b border-border/50 px-4 py-2.5">
             <DialogTitle className="min-w-0 flex-1 truncate text-[13px] font-medium">
               {diffFile?.path.replace(/\\/g, "/")}
             </DialogTitle>
             {diffFile ? (
-              <ChangeBar stat={stats.get(diffFile.path)} untracked={diffFile.untracked} />
+              <ChangeBar
+                stat={stats.get(diffFile.path)}
+                untracked={diffFile.untracked}
+              />
             ) : null}
             {onOpenFile && diffAbs ? (
               <button
@@ -324,7 +327,11 @@ export const GitStatusPane = memo(function GitStatusPane({
                 }}
                 className="inline-flex shrink-0 items-center gap-1 rounded-md border border-border/60 bg-background px-2 py-1 text-[11px] font-medium text-muted-foreground transition-colors hover:border-foreground/40 hover:text-foreground"
               >
-                <HugeiconsIcon icon={FileEditIcon} size={12} strokeWidth={1.8} />
+                <HugeiconsIcon
+                  icon={FileEditIcon}
+                  size={12}
+                  strokeWidth={1.8}
+                />
                 Open in editor
               </button>
             ) : null}
@@ -340,11 +347,12 @@ export const GitStatusPane = memo(function GitStatusPane({
               >
                 <GitDiffPane
                   active
+                  embedded
                   source={{
                     kind: "working",
                     repoRoot,
                     path: diffFile.path,
-                    mode: "+",
+                    mode: workingDiffMode(diffFile),
                     originalPath: diffFile.originalPath,
                   }}
                 />
